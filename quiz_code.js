@@ -13,6 +13,61 @@ const HEADERS = {
 };
 
 
-function SelectPlayer(){
-    const Player_Name = document.getElementById("pseudal")
+async function SelectPlayer(){
+  const el = document.getElementById('pseudal');
+  if (!el) {
+    console.error('SelectPlayer: input #pseudal introuvable');
+    return null;
+  }
+
+  const pseudo = (el.value || '').trim();
+  if (!pseudo) {
+    alert('Veuillez entrer un pseudo.');
+    return null;
+  }
+
+  try {
+    // 1) Vérifier si le pseudo existe déjà
+    const getUrl = API_JOUEUR + `?pseudo=eq.${encodeURIComponent(pseudo)}`;
+    const getRes = await fetch(getUrl, { headers: HEADERS });
+
+    if (getRes.ok) {
+      const existing = await getRes.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        // déjà présent → stocker et rediriger
+        sessionStorage.setItem('player_pseudo', pseudo);
+        sessionStorage.setItem('player_row', JSON.stringify(existing[0]));
+        window.location.href = 'quiz_ow_game.html';
+        return existing[0];
+      }
+    }
+
+    // 2) Si absent, insérer
+    const postRes = await fetch(API_JOUEUR, {
+      method: 'POST',
+      headers: Object.assign({}, HEADERS, { Prefer: 'return=representation' }),
+      body: JSON.stringify({ pseudo })
+    });
+
+    if (!postRes.ok) {
+      const txt = await postRes.text().catch(() => '(no body)');
+      console.error('Erreur insertion pseudo', postRes.status, txt);
+      alert('Impossible de créer le joueur. Voir la console pour les détails.');
+      return null;
+    }
+
+    const data = await postRes.json().catch(() => null);
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row) {
+      sessionStorage.setItem('player_pseudo', pseudo);
+      sessionStorage.setItem('player_row', JSON.stringify(row));
+    }
+
+    window.location.href = 'quiz_ow_game.html';
+    return row;
+  } catch (err) {
+    console.error('SelectPlayer error', err);
+    alert('Erreur réseau lors de la création/lecture du joueur.');
+    return null;
+  }
 }
