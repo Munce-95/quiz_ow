@@ -46,7 +46,10 @@ async function SelectPlayer(){
     const postRes = await fetch(API_JOUEUR, {
       method: 'POST',
       headers: Object.assign({}, HEADERS, { Prefer: 'return=representation' }),
-      body: JSON.stringify({ pseudo })
+      body: JSON.stringify({ 
+        id: crypto.randomUUID(),
+        pseudo 
+      })
     });
 
     if (!postRes.ok) {
